@@ -321,4 +321,74 @@ Did you notice that we didn't define networks explicitly in the docker-compose f
 
 If you want to rebuild the images and run the containers, you can run `docker-compose up --build`. This will rebuild the images and run the containers. You can also rebuild an image for a single service by running `docker-compose up --build <service-name>`. You can also run individual services by running `docker-compose up <service-name>`. This will run only the service that you specify. You can also run multiple services by running `docker-compose up <service-name> <service-name>`. This will run the services that you specify. The same way, you can also stop individual services by running `docker-compose stop <service-name>`. This will stop the service that you specify. You can also stop multiple services by running `docker-compose stop <service-name> <service-name`.
 
-You can also run individual commands for a service by running `docker-compose run <service-name> <command>`. This will run the command that you specify for the service that you specify. You can also run multiple commands for a service by running `docker-compose run <service-name> <command> <command>`. This will run the commands that you specify for the service that you specify. You can also run a command for a service in detached mode by running `docker-compose run -d <service-name> <command>`. This will run the command that you specify for the service that you specify in detached mode.
+You can see how versatile docker-compose can be. The neatest thing is you never have to ask your co-worker what version of node or react or any other dependency they are using. You can just share the docker-compose file and run the same environment as everyone else. 
+
+You will also continue to notice that we never installed any dependencies on our local machine. Another benefit of containerizing your applications is that you don't have to install dependencies on your local machine.
+
+## Utility Containers
+
+Utility containers (non-official term) are containers that are used for a specific task. They are usually run once and then removed. They are great for running one-off tasks like running a script, backing up data, or running a database migration. You can run utility containers in any of the ways we mentioned above. There's nothing special about utility containers, they are just containers that are used for a specific task.
+
+Creating a node project requires you to run `npm init` to initially create a `package.json` file. If you don't want to create it manually, this is typically what you would do. But, what if you don't have `node` or `npm` installed. This is a great example for a Utility container. You can run a node container, run `npm init` and then remove the container. This way you don't have to install `node` or `npm` on your local machine. You can run the following command to run a node container and run `npm init`:
+
+```powershell
+docker run --rm -it -v /c/repos/docker-demo/docker-node:/app -w /app node:latest npm init -y
+```
+
+- `-v /c/repos/docker-demo/docker-node:/app` tells docker that we want to attach the `/c/repos/docker-demo/docker-node` path on our local machine to the `/app` path inside the container.
+- `-w /app` tells docker that we want to set the working directory to the `/app` path inside the container.
+- `node:latest` tells docker that we want to run this container based on the `node` image with the `latest` tag.
+- `npm init -y` tells docker that we want to run the `npm init -y` command. The `-y` flag tells `npm` that we want to use the default options for the `npm init` command.
+
+This will create a `package.json` file in the `docker-node` directory on your local machine. You can also run `npm install` to install the dependencies in the `package.json` file. This is a great example of how you can use utility containers to run one-off tasks without having to install the dependencies on your local machine.
+
+To do this with `docker-compose` we can add a service to the `docker-compose.yml` file with the following configuration:
+
+```yaml
+services:
+  demo-utility:
+    image: node:latest
+    volumes:
+      - /c/repos/docker-demo/docker-node:/app
+    working_dir: /app
+    command: npm init -y
+```
+
+To do this with a `Dockerfile` we can create a `Dockerfile` in the `docker-node` directory with the following configuration:
+
+```docker
+FROM node:latest
+
+WORKDIR /app
+
+CMD [ "npm", "init", "-y" ]
+```
+
+To make the Dockerfile more versatile instead of only running `npm init -y`, we can set an entrypoint in the Dockerfile and pass the command as an argument when we run the container. This way we can run any command we want when we run the container. Here is an example of how you can set an entrypoint in the Dockerfile:
+
+```docker
+FROM node:latest
+
+WORKDIR /app
+
+ENTRYPOINT [ "npm" ]
+```
+
+To achieve the same thing in docker-compose to make it more versatile, we can also pass the entrypoint and command as arguments in the `docker-compose.yml` file:
+
+```yaml
+services:
+  demo-utility:
+    image: node:latest
+    volumes:
+      - /c/repos/docker-demo/docker-node:/app
+    working_dir: /app
+    entrypoint: [ "npm" ]
+    command: [ "init", "-y" ]
+```
+
+By default, it will run `npm init -y`. However, if you run `docker-compose run` instead of `docker-compose up`, you can pass the command as an argument. For example, you can run `docker-compose run demo-utility install express` to install the `express` package. You don't have to specify `npm` as the `entrypoint` option already specifies `npm`. This is a great example of how you can use utility containers to run one-off tasks without having to install the dependencies on your local machine. 
+
+## Conclusion
+
+This is just scratching the surface of what you can do with Docker. There are so many other options and flags to suit your need. Docker is a great tool for running applications in isolated environments without having to install the dependencies on your local machine. It's also a great way to share your applications with others without having to worry about them setting up their environments.
