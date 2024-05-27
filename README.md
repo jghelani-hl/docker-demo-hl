@@ -1,3 +1,5 @@
+# Docker
+
 Let’s start with what Docker is and why it is a great tool for engineers. Docker is a containerization platform that allows you to package, ship and run specific applications in isolated environments. It does that using containers and images.
 
 I went to school for cooking so this example makes sense to me:
