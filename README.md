@@ -231,10 +231,10 @@ Let's test this out with the node app. Let's stop the node app container by runn
 Now let's run the node app container again and attach a bind mount to it:
 
 ```powershell
-docker run --rm -it -p 3000:3000 --network demo-network -v /c/repos/docker-demo/docker-build:/app -v /app/node_modules --name demo-node-app -e CHOKIDAR_USEPOLLING=true demo-node:latest
+docker run --rm -it -p 3000:3000 --network demo-network -v /c/repos/docker-demo/docker-app:/app -v /app/node_modules --name demo-node-app -e CHOKIDAR_USEPOLLING=true demo-node:latest
 ```
 
-- `-v /c/repos/docker-demo/docker-build:/app` tells docker that we want to attach the `/c/repos/docker-demo/docker-build` path on our local machine to the `/app` path inside the container. One thing to note here is that the path of your local machine has to be an absolute path. Because I am using WSL2, I have to use the `/c/` prefix to specify the correct path. If you are using macOS or Linux, you can use the `/` prefix to specify the path. If you are using Windows, you can use the `C:\` prefix to specify the path.
+- `-v /c/repos/docker-demo/docker-app:/app` tells docker that we want to attach the `/c/repos/docker-demo/docker-app` path on our local machine to the `/app` path inside the container. One thing to note here is that the path of your local machine has to be an absolute path. Because I am using WSL2, I have to use the `/c/` prefix to specify the correct path. If you are using macOS or Linux, you can use the `/` prefix to specify the path. If you are using Windows, you can use the `C:\` prefix to specify the path.
 - `-v /app/node_modules` tells docker that we want to attach the `/app/node_modules` path inside the container. This is important as our Dockerfile copies everything from our local to the container, and since our local doesn't have a node_modules folder, it will replace the node_modules folder in the container that the image has when it was built. So to avoid this from happening we are telling docker to persist the node_modules folder from the container to the local machine. This way we don't have to install the node_modules on our local machine every time we run the container. The deeper the path, the higher the priority for that data persistence.
 - `-e CHOKIDAR_USEPOLLING=true` tells docker that we want to set the `CHOKIDAR_USEPOLLING` environment variable to `true`. This is useful when you are using bind mounts on Windows or macOS. This is because the file system on Windows and macOS doesn't support file system events like Linux does. This can cause issues with file system events not being detected by the container. Setting the `CHOKIDAR_USEPOLLING` environment variable to `true` tells the container to use polling to detect file system events. This is useful when you are using bind mounts on Windows or macOS.
 
@@ -245,3 +245,80 @@ Some caveats, if you are using WSL2 on Windows, you may have to set the `CHOKIDA
 ## Docker Compose
 
 Docker compose is one of my favourite tools when working with Docker. It allows you to define multi-container applications in a single file. This is great because you can define all your services in one file and run them with a single command. This is especially useful when you have multiple services that need to communicate with each other. You can define networks, volumes, and mounts in a structured way. You can also define environment variables, build arguments, and other configurations in a structured way.
+
+So far we have a node app and a mongo container running. Let's complete the cycle by adding a React app and putting all the commands to build and run the containers in a single file.
+
+Let's create a `docker-compose.yml` file in the root of our project:
+
+```yaml
+services:
+  demo-mongo:
+    image: mongo:latest
+    volumes:
+      - demo-mongo-data:/data/db
+
+  demo-backend:
+    build:
+      context: ./docker-backend
+      dockerfile: Dockerfile
+    image: demo-node
+    container_name: demo-backend
+    ports:
+      - 3001:3000
+    volumes:
+      - ./docker-backend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - demo-mongo
+
+  demo-frontend:
+    build:
+      context: ./docker-frontend
+      dockerfile: Dockerfile
+    image: demo-react
+    container_name: demo-frontend
+    ports:
+      - 3000:3000
+    volumes:
+      - ./docker-frontend/src:/app/src
+    depends_on:
+      - demo-backend
+    stdin_open: true
+    tty: true
+    environment:
+      - WATCHPACK_POLLING=true
+
+volumes:
+  demo-mongo-data:
+```
+
+- `services` is where you define all your services. Each service is a container that you want to run. You can define multiple services in the `services` section.
+- `demo-mongo` is the MongoDB service. We define the image that we want to use, and we attach the `demo-mongo-data` volume to it.
+- `demo-backend` is the node app service. We define the build context and the Dockerfile that we want to use. We also define the image name, the container name, the ports that we want to map, the volumes that we want to attach, the environment variables that we want to set, and the services that we want to depend on. We depend on the `demo-mongo` service because the node app needs to connect to the MongoDB database.
+- `demo-frontend` is the React app service. We define the build context and the Dockerfile that we want to use. We also define the image name, the container name, the ports that we want to map, the volumes that we want to attach, the services that we want to depend on, and the environment variables that we want to set. We depend on the `demo-backend` service because the React app needs to connect to the node app. We also set `stdin_open` and `tty` to `true` because we want to run the container in interactive mode.
+- `volumes` is where you define all your volumes. Each volume is a volume that you want to create. You can define multiple volumes in the `volumes` section.
+- `demo-mongo-data` is the volume that we attach to the MongoDB service.
+- `context` is the path to the build context. This is the path where the Dockerfile is located.
+- `dockerfile` is the path to the Dockerfile. This is the path where the Dockerfile is located at that context.
+- `image` is the name of the image that you want to build.
+- `container_name` is the name of the container that you want to run.
+- `ports` is the ports that you want to map. This is important because the node app is running on port 3000 inside the container, and the React app is running on port 3000 inside the container. If we don’t map the ports, we won’t be able to access the apps from our local machine.
+- `environment` is the environment variables that you want to set. This is useful when you want to set environment variables for your services. We can also optionally use a `.env` file to set environment variables and use them in the `docker-compose.yml` file using the `- env_file: .env` option instead of the `environment` option.
+
+Now that we have a docker-compose file and the modules in their own directories with their own Dockerfiles, we can run the following command to build and run the containers:
+
+```powershell
+docker-compose up
+```
+
+That is it! This will build and run all the containers in the `docker-compose.yml` file using a single command instead of running `docker build` and `docker run` multiple times for each image. You will see that the containers are running, and you can access the node app at [localhost:3001](http://localhost:3001) and the React app at [localhost:3000](http://localhost:3000). You can also access the MongoDB database's interactive terminal by running `docker exec -it demo-mongo mongo`. You can also run `docker-compose` in detached mode by running `docker-compose up -d`. This will run the containers in the background. 
+
+To stop the containers, all you have to do is run `docker-compose down` and it will stop all the running containers for this docker-compose file. This will stop and remove the containers. You can also remove the volumes by running `docker-compose down -v`. This will stop and remove the containers and the volumes.
+
+Did you notice that we didn't define networks explicitly in the docker-compose file? That's because docker-compose automatically creates a network for you when you run `docker-compose up`. To access the URL of the container from another container you can simply use the name of the container as the host name. Docker will handle all the DNS configurations for you behind the scenes. You will also notice that we have to use `http://localhost:3001` from the React app instead of `http://demo-backend:3001`. This is because the React app is running on your local machine and is calling the code from the browser instead from withing a container. If you want to access the node app from the React app, you have to use `http://localhost:3001` instead of `http://demo-backend:3001`.
+
+If you want to rebuild the images and run the containers, you can run `docker-compose up --build`. This will rebuild the images and run the containers. You can also rebuild an image for a single service by running `docker-compose up --build <service-name>`. You can also run individual services by running `docker-compose up <service-name>`. This will run only the service that you specify. You can also run multiple services by running `docker-compose up <service-name> <service-name>`. This will run the services that you specify. The same way, you can also stop individual services by running `docker-compose stop <service-name>`. This will stop the service that you specify. You can also stop multiple services by running `docker-compose stop <service-name> <service-name`.
+
+You can also run individual commands for a service by running `docker-compose run <service-name> <command>`. This will run the command that you specify for the service that you specify. You can also run multiple commands for a service by running `docker-compose run <service-name> <command> <command>`. This will run the commands that you specify for the service that you specify. You can also run a command for a service in detached mode by running `docker-compose run -d <service-name> <command>`. This will run the command that you specify for the service that you specify in detached mode.

@@ -1,0 +1,41 @@
+services:
+  demo-mongo:
+    image: mongo:latest
+    volumes:
+      - demo-mongo-data:/data/db
+
+  demo-backend:
+    build:
+      context: ./docker-backend
+      dockerfile: Dockerfile
+    image: demo-node
+    container_name: demo-backend
+    ports:
+      - 3001:3000
+    volumes:
+      - ./docker-backend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - demo-mongo
+
+  demo-frontend:
+    build:
+      context: ./docker-frontend
+      dockerfile: Dockerfile
+    image: demo-react
+    container_name: demo-frontend
+    ports:
+      - 3000:3000
+    volumes:
+      - ./docker-frontend/src:/app/src
+    depends_on:
+      - demo-backend
+    stdin_open: true
+    tty: true
+    environment:
+      - WATCHPACK_POLLING=true
+
+volumes:
+  demo-mongo-data:
