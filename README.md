@@ -158,13 +158,7 @@ Now let’s run a MongoDB container and attach it to the `demo-network` network:
 docker run --rm -d --network demo-network --name demo-mongo mongo:latest
 ```
 
-- `docker run` tells docker that we want to run a container
-- `--rm` tells docker that we want to remove the container once it stops running
-- `-d` tells docker that we want to run the container in detached mode
 - `--network demo-network` tells docker that we want to attach this container to the `demo-network` network
-- `--name demo-mongo` tells docker that we want to give this container a name
-- `mongo:latest` tells docker that we want to run this container based on the `mongo` image that is available on Docker Hub
-- `latest` tells docker that we want to use the `latest` tag of the `mongo` image
 
 If you run `docker ps`, you will see that the MongoDB container is running. If you run `docker network inspect demo-network`, you will see that the MongoDB container is attached to the `demo-network` network.
 
@@ -174,14 +168,7 @@ Now let’s run a node app container and attach it to the `demo-network` network
 docker run --rm -it -p 3000:3000 --network demo-network --name demo-node-app demo-node:latest
 ```
 
-- `docker run` tells docker that we want to run a container
-- `--rm` tells docker that we want to remove the container once it stops running
-- `-it` tells docker that we want to enable interactive mode (Keep STDIN open) and allocate a pseudo-TTY
-- `-p 3000:3000` tells docker that we want to map port 3000 on our local machine to port 3000 on the container
 - `--network demo-network` tells docker that we want to attach this container to the `demo-network` network
-- `--name demo-node-app` tells docker that we want to give this container a name
-- `demo-node:latest` tells docker that we want to run this container based on the `demo-node` image that we built earlier
-- `latest` tells docker that we want to use the `latest` tag of the `demo-node` image
 
 Now you can access your app at [localhost:3000](http://localhost:3000) and see the `{message: 'Hello World!'}` response. If you run `docker ps`, you will see that both the MongoDB container and the node app container are running. If you run `docker network inspect demo-network`, you will see that both the MongoDB container and the node app container are attached to the `demo-network` network.
 
@@ -192,3 +179,69 @@ When we talk about Docker Compose, we will see how we can define networks and at
 ## Volumes and Mounts
 
 Until now, we have seen how to build images, run containers, and create networks. But what if you want to persist data between container restarts? This is where Docker volumes and mounts come in. By default, docker containers are stateless. This means that when a container stops running, all the data inside the container is lost. If you want to persist data between container restarts, you can use Docker volumes and mounts. it is important to note that you are not modifying the image itself, but you are modifying the container that is running the image.
+
+Let's test this out. Let's try a POST request to the `/name` endpoint for the node and mongo containers that are already running. It does come back with a success message. If we try the GET request to `/names` you will see the name we just entered coming back from MongoDB.
+
+Now let's stop the mongo container by running `docker stop demo-mongo`. Let's start the Mongo container again, and this time without the `--rm` flag. Now if you hit the `/names` endpoint, you will see that the name we entered earlier is no longer there. This is because the data inside the MongoDB container isn't there even though we had saved it to the database using our POST request. If you want to persist data between container restarts, you can use Docker volumes and mounts.
+
+There are multiple ways to create volumes. You can either create them explicitly or inline when you run the `docker run` command.
+
+### Named Volumes
+
+Let's create a volume and attach it to the MongoDB container:
+
+To explicitly create a volume, you can run this command:
+
+```powershell
+docker volume create demo-mongo-data
+```
+
+This will create a volume called `demo-mongo-data`. You can see all the volumes that you have created by running `docker volume ls`. You can also see all the volumes that your containers are attached to by running `docker volume inspect <volume-name>`.
+
+AAlternatively, you can create a volume inline when you run the `docker run` command. Let's remove the MongoDB container by running `docker stop demo-mongo` and `docker rm demo-mongo`.
+
+Now let's run the MongoDB container again and attach the volume to it:
+
+```powershell
+docker run --rm -d --network demo-network -v demo-mongo-data:/data/db --name demo-mongo mongo:latest
+```
+
+- `-v demo-mongo-data:/data/db` tells docker that we want to attach the `demo-mongo-data` volume to the `/data/db` path inside the container. The colon `:` separates the volume name from the path inside the container
+
+Now if you hit the `/names` endpoint, you will see that the name we entered earlier persists even if we stop, remove and re-run the container. We can even delete the image and container and the data will still persist. This is because the data inside the MongoDB container is persisted in `demo-mongo-data` volume that is mapped to the `/data/db` path inside the container.
+
+### Anonymous Volumes
+
+The `demo-mongo-data` volume is a named volume. You can also create anonymous volumes by only specifying the path inside the container in the `-v` flag. For example, you can run:
+
+```powershell
+docker run --rm -d --network demo-network -v /data/db --name demo-mongo mongo:latest
+```
+
+This will create an anonymous volume that is not named. You can see all the volumes that you have created by running `docker volume ls`. Anonymous volumes are useful when you don't care about persisting the data between container restarts, and you just want to persist the data while the container is running. If you pass the `--rm` flag to the `docker run` command, the anonymous volume will automatically be removed when the container stops running. If you want to remove the anonymous volume manually, you can run `docker volume rm <volume-name>`.
+
+### Bind Mounts
+
+Volumes are great for persisting data between container restarts, but what if you want to persist data between container restarts and also have access to the data on your local machine? This is where bind mounts come in. Bind mounts allow you to mount a path on your local machine to a path inside the container. This way you can persist data between container restarts and also have access to the data on your local machine. This is also great for development so that you can make changes on the fly without having to rebuild your docker image and running a new container every time you make a change.
+
+Bind mounts are great because data between the container and your local machine is synced. If you make changes to the data on your local machine, the changes will be reflected in the container. If you make changes to the data inside the container, the changes will be reflected on your local machine.
+
+Let's test this out with the node app. Let's stop the node app container by running `docker stop demo-node-app`. It should have automatically removed the container because we used the `--rm` flag when we ran the container.
+
+Now let's run the node app container again and attach a bind mount to it:
+
+```powershell
+docker run --rm -it -p 3000:3000 --network demo-network -v /c/repos/docker-demo/docker-build:/app -v /app/node_modules --name demo-node-app -e CHOKIDAR_USEPOLLING=true demo-node:latest
+```
+
+- `-v /c/repos/docker-demo/docker-build:/app` tells docker that we want to attach the `/c/repos/docker-demo/docker-build` path on our local machine to the `/app` path inside the container. One thing to note here is that the path of your local machine has to be an absolute path. Because I am using WSL2, I have to use the `/c/` prefix to specify the correct path. If you are using macOS or Linux, you can use the `/` prefix to specify the path. If you are using Windows, you can use the `C:\` prefix to specify the path.
+- `-v /app/node_modules` tells docker that we want to attach the `/app/node_modules` path inside the container. This is important as our Dockerfile copies everything from our local to the container, and since our local doesn't have a node_modules folder, it will replace the node_modules folder in the container that the image has when it was built. So to avoid this from happening we are telling docker to persist the node_modules folder from the container to the local machine. This way we don't have to install the node_modules on our local machine every time we run the container. The deeper the path, the higher the priority for that data persistence.
+- `-e CHOKIDAR_USEPOLLING=true` tells docker that we want to set the `CHOKIDAR_USEPOLLING` environment variable to `true`. This is useful when you are using bind mounts on Windows or macOS. This is because the file system on Windows and macOS doesn't support file system events like Linux does. This can cause issues with file system events not being detected by the container. Setting the `CHOKIDAR_USEPOLLING` environment variable to `true` tells the container to use polling to detect file system events. This is useful when you are using bind mounts on Windows or macOS.
+
+Now if you make changes source code for our node app, you will see that the changes will be reflected in the container and `nodemon` restarts the server.
+
+Some caveats, if you are using WSL2 on Windows, you may have to set the `CHOKIDAR_USEPOLLING` environment variable to `true` because the file system on Windows doesn't support file system events like Linux does. This can cause issues with file system events not being detected by the container. Setting the `CHOKIDAR_USEPOLLING` environment variable to `true` tells the container to use polling to detect file system events. This is useful when you are using bind mounts on Windows. If you are running a front-end application like React, you may have to set the `WATCHPACK_POLLING` environment variable to `true` for the same reason.
+
+## Docker Compose
+
+Docker compose is one of my favourite tools when working with Docker. It allows you to define multi-container applications in a single file. This is great because you can define all your services in one file and run them with a single command. This is especially useful when you have multiple services that need to communicate with each other. You can define networks, volumes, and mounts in a structured way. You can also define environment variables, build arguments, and other configurations in a structured way.

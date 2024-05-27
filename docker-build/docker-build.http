@@ -1,8 +1,9 @@
+### Getting started
 GET localhost:3000
 
 
 ### Create a new name
-POST localhost:3000/names
+POST localhost:3000/name
 Content-Type: application/json
 
 {
