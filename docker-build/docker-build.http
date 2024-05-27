@@ -1,0 +1,15 @@
+GET localhost:3000
+
+
+### Create a new name
+POST localhost:3000/names
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe"
+}
+
+
+### Get all names
+GET localhost:3000/names

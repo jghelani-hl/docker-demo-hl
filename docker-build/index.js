@@ -37,7 +37,7 @@ app.get('/names', async (req, res) => {
     }
 });
 
-app.post('/names', async (req, res) => {
+app.post('/name', async (req, res) => {
     const firstName = req.body.firstName;
     const lastName = req.body.lastName;
     const fullName = `${firstName} ${lastName}`;
