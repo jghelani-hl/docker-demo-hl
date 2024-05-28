@@ -62,7 +62,7 @@ app.post('/name', async (req, res) => {
     }
 });
 
-mongoose.connect('mongodb://demo-mongo:27017/names?authSource=admin', {
+mongoose.connect(`${process.env.MONGO_URI}/names?authSource=admin`, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => {

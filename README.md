@@ -91,6 +91,8 @@ RUN npm install
 
 COPY . .
 
+ENV MONGO_URI=mongodb://demo-mongo:27017
+
 CMD [ "npm", "start" ]
 ```
 
@@ -99,6 +101,7 @@ CMD [ "npm", "start" ]
 - `COPY package.json .` tells Docker that you want to copy `package.json` to `.` inside the image. `.` Represents the working directory of our image which we have set to as `/app` above
 - `RUN` tells Docker that when you start to build the image, run the `npm install` command
 - `COPY . .` tells Docker to copy everything from the context of your local machine to the context of the working directory in the image
+- `ENV MONGO_URI=mongodb://demo-mongo:27017` tells Docker that we want to set an environment variable called `MONGO_URI` with the value `mongodb://demo-mongo:27017`. This is useful when you want to set environment variables for your images and containers. We will see more on this later and talk about the hostname of the connection string as well when we talk about Docker networks
 - `CMD ["npm", "start"]` tells node that when the image is run by the container, run this command. It’s important to note that this doesn't happen during build time - therefore there’s a differentiation between running `RUN npm install` and `CMD ["npm", "start"]`
 
 Great, the Dockerfile has instructions on running this node app in a container, so how do we actually run this image. We use the `docker build` command:
@@ -138,13 +141,19 @@ Let's open another terminal and run `docker ps` to see the running containers. Y
 
 To see a list of all the images that you have built, you can run `docker images`. If you want to remove the image you just built, you can run `docker rmi demo-node:latest`. If you run `docker images`, you will see that the image is no longer there. You can also remove multiple images by adding multiple image names to the `docker rmi` command.
 
+## Environment Variables for Docker Build and Run
+
+Great! We have seen how to build images and run containers. But what if you want to set environment variables for your images and containers? This is where environment variables come in. Environment variables allow you to set environment variables for your images and containers. This is useful when you want to set environment variables for things such as dev versus prod endpoints, or application credentials for different environments. You can set environment variables for your images and containers using the `ENV` instruction in the `Dockerfile` like you saw before or the `-e` flag in the `docker run` command.
+
+Let’s say you have a node application that connects to a MongoDB database. You want to run the node app in a container and set the MongoDB connection string as an environment variable. You can set the environment variable in the `Dockerfile` using the `ENV` instruction or in the `docker run` command using the `-e` flag.
+
 ## Docker Network
 
 Great! We have seen how to build images and run containers. But what if you want to run multiple containers that need to communicate with each other? This is where Docker networks come in.
 
 Docker networks allow you to create a network that your containers can connect to. This is useful when you have multiple containers that need to communicate with each other. You can create a network and attach your containers to that network. This way your containers can communicate with each other without having to expose ports to the outside world.
 
-Let’s say you have a node application that connects to a MongoDB database. You want to run both the node app and the MongoDB database in containers. You can create a network and attach both the node app and the MongoDB database to that network. This way the node app can connect to the MongoDB database without having to expose the MongoDB port to the outside world.
+Let’s say you have a node application that connects to a MongoDB database. You want to run both the node app and the MongoDB database in their own containers isolated in their own environments. You can create a network and attach both the node app and the MongoDB database to that network. This way the node app can connect to the MongoDB database without having to expose the MongoDB port to the outside world.
 
 To create a network, you can run:
 
@@ -152,7 +161,7 @@ To create a network, you can run:
 docker network create demo-network
 ```
 
-This will create a network called `demo-network`. You can see all the networks that you have created by running `docker network ls`. You can also see all the networks that your containers are attached to by running `docker network inspect <network-name>`.
+This will create a network called `demo-network`. You can see all the networks that you have created by running `docker network ls`. You can also see all the containers that are connected to your network by running `docker network inspect <network-name>`.
 
 Now let’s run a MongoDB container and attach it to the `demo-network` network:
 
@@ -170,17 +179,17 @@ Now let’s run a node app container and attach it to the `demo-network` network
 docker run --rm -it -p 3000:3000 --network demo-network --name demo-node-app demo-node:latest
 ```
 
-- `--network demo-network` tells docker that we want to attach this container to the `demo-network` network
+- `--network demo-network` tells docker that we want to attach this container to the `demo-network` network as well.
 
-Now you can access your app at [localhost:3000](http://localhost:3000) and see the `{message: 'Hello World!'}` response. If you run `docker ps`, you will see that both the MongoDB container and the node app container are running. If you run `docker network inspect demo-network`, you will see that both the MongoDB container and the node app container are attached to the `demo-network` network.
+Now you can access your app at [localhost:3000](http://localhost:3000) and see the `{message: 'Hello World!'}` response as well as the successful connection to MongoDB in the node console. If you run `docker ps`, you will see that both the MongoDB container and the node app container are running. If you run `docker network inspect demo-network`, you will now see that both the MongoDB container and the node app container are attached to the `demo-network` network.
 
-Something interesting to note is that the node app container can connect to the MongoDB container using the container name. This is because Docker automatically creates a DNS entry for each container that is attached to a network. This allows you to connect to other containers using the container name as the hostname. This is useful when you have multiple containers that need to communicate with each other. If you look at the code inside `index.js`, you will notice that we are using the container name as the hostname to connect to the MongoDB database. This is because the node app container can connect to the MongoDB container using the container name as the hostname. It's important to note that this will only work if the containers are attached to the same network and if the container calls are made from within the container. If, for example, you have a React app that is running on your local machine, and you want to connect to the node app container, you will have to use the IP address of the node app container (or localhost) instead of the container name, and you have to make sure that you are exposing port 3000 on the node container. This is because the React app is executed on the browser and not within the container, so you will not get DNS resolution from the browser run code.
+Something interesting to note is that the node app container connects to the MongoDB container using the container name as the host name for the Mongo connection string. This is because Docker automatically creates a DNS entry for each container that is attached to a network. This allows you to connect to other containers using the container name as the hostname. This is useful when you have multiple containers that need to communicate with each other. If you look at the code inside `index.js`, you will notice that we are using the container name as the hostname to connect to the MongoDB database. This is because the node app container can connect to the MongoDB container using the container name as the hostname. It's important to note that this will only work if the containers are attached to the same network and if the container calls are made from within the container. If, for example, you have a React app that is running on your local machine, and you want to connect to the node app container, you will have to use the IP address of the node app container (or localhost) instead of the container name, and you have to make sure that you are exposing port 3000 on the node container. This is because the React app is executed on the browser and not from within the container, so you will not get DNS resolution from the browser run code.
 
 When we talk about Docker Compose, we will see how we can define networks and attach containers to networks in a more structured way.
 
 ## Volumes and Mounts
 
-Until now, we have seen how to build images, run containers, and create networks. But what if you want to persist data between container restarts? This is where Docker volumes and mounts come in. By default, docker containers are stateless. This means that when a container stops running, all the data inside the container is lost. If you want to persist data between container restarts, you can use Docker volumes and mounts. it is important to note that you are not modifying the image itself, but you are modifying the container that is running the image.
+Until now, we have seen how to build images, run containers, use environment variables, and create networks. The one thing I didn't mention before is that containers are intrinsically stateless. But what if you want to persist data between container restarts? For example, what if you want to save data to the MongoDB database, but everytime you restart the container that data is lost right now. What if we want to persist that data. This is where Docker volumes and mounts come in. By default, docker containers are stateless. This means that when a container stops running, all the data inside the container is lost. If you want to persist data between container restarts, you can use Docker volumes and mounts. it is important to note that you are not modifying the image itself, but you are modifying the container that is running the image.
 
 Let's test this out. Let's try a POST request to the `/name` endpoint for the node and mongo containers that are already running. It does come back with a success message. If we try the GET request to `/names` you will see the name we just entered coming back from MongoDB.
 
@@ -192,13 +201,13 @@ There are multiple ways to create volumes. You can either create them explicitly
 
 Let's create a volume and attach it to the MongoDB container:
 
-To explicitly create a volume, you can run this command:
+To explicitly create a volume, you could run this command:
 
 ```powershell
 docker volume create demo-mongo-data
 ```
 
-This will create a volume called `demo-mongo-data`. You can see all the volumes that you have created by running `docker volume ls`. You can also see all the volumes that your containers are attached to by running `docker volume inspect <volume-name>`.
+This will create a volume called `demo-mongo-data`. 
 
 AAlternatively, you can create a volume inline when you run the `docker run` command. Let's remove the MongoDB container by running `docker stop demo-mongo` and `docker rm demo-mongo`.
 
@@ -210,7 +219,7 @@ docker run --rm -d --network demo-network -v demo-mongo-data:/data/db --name dem
 
 - `-v demo-mongo-data:/data/db` tells docker that we want to attach the `demo-mongo-data` volume to the `/data/db` path inside the container. The colon `:` separates the volume name from the path inside the container
 
-Now if you hit the `/names` endpoint, you will see that the name we entered earlier persists even if we stop, remove and re-run the container. We can even delete the image and container and the data will still persist. This is because the data inside the MongoDB container is persisted in `demo-mongo-data` volume that is mapped to the `/data/db` path inside the container.
+Now if you hit the `/names` endpoint, you will see that the name we entered persists even if we stop, remove and re-run the container. We can even delete the image and container and the data will still persist. This is because the data inside the MongoDB container is persisted in `demo-mongo-data` volume that is mapped to the `/data/db` path inside the container.
 
 ### Anonymous Volumes
 
@@ -220,7 +229,7 @@ The `demo-mongo-data` volume is a named volume. You can also create anonymous vo
 docker run --rm -d --network demo-network -v /data/db --name demo-mongo mongo:latest
 ```
 
-This will create an anonymous volume that is not named. You can see all the volumes that you have created by running `docker volume ls`. Anonymous volumes are useful when you don't care about persisting the data between container restarts, and you just want to persist the data while the container is running. If you pass the `--rm` flag to the `docker run` command, the anonymous volume will automatically be removed when the container stops running. If you want to remove the anonymous volume manually, you can run `docker volume rm <volume-name>`.
+This will create an anonymous volume that is not named. Anonymous volumes are useful when you don't care about persisting the data between container restarts, and you just want to persist the data while the container is running. If you pass the `--rm` flag to the `docker run` command, the anonymous volume will automatically be removed when the container stops running, otherwise you will have to manually clean up unused volumes. 
 
 ### Bind Mounts
 
@@ -238,17 +247,17 @@ docker run --rm -it -p 3000:3000 --network demo-network -v /c/repos/docker-demo/
 
 - `-v /c/repos/docker-demo/docker-app:/app` tells docker that we want to attach the `/c/repos/docker-demo/docker-app` path on our local machine to the `/app` path inside the container. One thing to note here is that the path of your local machine has to be an absolute path. Because I am using WSL2, I have to use the `/c/` prefix to specify the correct path. If you are using macOS or Linux, you can use the `/` prefix to specify the path. If you are using Windows, you can use the `C:\` prefix to specify the path.
 - `-v /app/node_modules` tells docker that we want to attach the `/app/node_modules` path inside the container. This is important as our Dockerfile copies everything from our local to the container, and since our local doesn't have a node_modules folder, it will replace the node_modules folder in the container that the image has when it was built. So to avoid this from happening we are telling docker to persist the node_modules folder from the container to the local machine. This way we don't have to install the node_modules on our local machine every time we run the container. The deeper the path, the higher the priority for that data persistence.
-- `-e CHOKIDAR_USEPOLLING=true` tells docker that we want to set the `CHOKIDAR_USEPOLLING` environment variable to `true`. This is useful when you are using bind mounts on Windows or macOS. This is because the file system on Windows and macOS doesn't support file system events like Linux does. This can cause issues with file system events not being detected by the container. Setting the `CHOKIDAR_USEPOLLING` environment variable to `true` tells the container to use polling to detect file system events. This is useful when you are using bind mounts on Windows or macOS.
+- `-e CHOKIDAR_USEPOLLING=true` tells docker that we want to set the `CHOKIDAR_USEPOLLING` environment variable to `true`. This is useful when you are using bind mounts on Windows or macOS. This is because the file system on Windows and macOS doesn't support file system events like Linux does. This can cause issues with file system events not being detected by the container. Setting the `CHOKIDAR_USEPOLLING` environment variable to `true` tells the container to use polling to detect file system events.
 
-Now if you make changes source code for our node app, you will see that the changes will be reflected in the container and `nodemon` restarts the server.
+Now if you make changes to the source code for our node app, you will see that the changes will be reflected in the container and `nodemon` restarts the server.
 
-Some caveats, if you are using WSL2 on Windows, you may have to set the `CHOKIDAR_USEPOLLING` environment variable to `true` because the file system on Windows doesn't support file system events like Linux does. This can cause issues with file system events not being detected by the container. Setting the `CHOKIDAR_USEPOLLING` environment variable to `true` tells the container to use polling to detect file system events. This is useful when you are using bind mounts on Windows. If you are running a front-end application like React, you may have to set the `WATCHPACK_POLLING` environment variable to `true` for the same reason.
+Like mentioned above, if you are using WSL2 on Windows, you may have to set the `CHOKIDAR_USEPOLLING` environment variable to `true` because the file system on Windows doesn't support file system events like Linux does. This can cause issues with file system events not being detected by the container. Setting the `CHOKIDAR_USEPOLLING` environment variable to `true` tells the container to use polling to detect file system events. This is useful when you are using bind mounts on Windows. If you are running a front-end application like React, you may have to set the `WATCHPACK_POLLING` environment variable to `true` for the same reason.
 
 ## Docker Compose
 
-Docker compose is one of my favourite tools when working with Docker. It allows you to define multi-container applications in a single file. This is great because you can define all your services in one file and run them with a single command. This is especially useful when you have multiple services that need to communicate with each other. You can define networks, volumes, and mounts in a structured way. You can also define environment variables, build arguments, and other configurations in a structured way.
+Docker compose is one of my favourite tools when working with Docker. It allows you to define multi-container applications in a single file. This is great because you can define all your services in one file and run them with a single command. This is especially useful when you have multiple services that need to communicate with each other. You can define networks, volumes, environment variables, mounts and other configurations in a structured way.
 
-So far we have a node app and a mongo container running. Let's complete the cycle by adding a React app and putting all the commands to build and run the containers in a single file.
+So far we have a node app and a mongo container running. Let's complete the cycle by adding a React app and putting all the commands to build and run the three containers in a single file.
 
 Let's create a `docker-compose.yml` file in the root of our project:
 
@@ -316,13 +325,13 @@ Now that we have a docker-compose file and the modules in their own directories 
 docker-compose up
 ```
 
-That is it! This will build and run all the containers in the `docker-compose.yml` file using a single command instead of running `docker build` and `docker run` multiple times for each image. You will see that the containers are running, and you can access the node app at [localhost:3001](http://localhost:3001) and the React app at [localhost:3000](http://localhost:3000). You can also access the frontend container's terminal by running `docker exec -it demo-frontend /bin/bash`. You can also run `docker-compose` in detached mode by running `docker-compose up -d`. This will run the containers in the background and not lock up your terminal.
+That is it! This will build and run all the containers in the `docker-compose.yml` file using a single command instead of running `docker build` and `docker run` multiple times for each image. You will see that the containers are running, and you can access the node app at [localhost:3001](http://localhost:3001) and the React app at [localhost:3000](http://localhost:3000). You can also access the frontend container's terminal by running `docker exec -it demo-frontend /bin/bash`.
 
-To stop the containers, all you have to do is run `docker-compose down` and it will stop all the running containers for this docker-compose file. This will stop and remove the containers. You can also remove the volumes by running `docker-compose down -v`. This will stop and remove the containers and the volumes.
+To stop the containers, all you have to do is run `docker-compose down` and it will stop and remove all the running containers for this docker-compose file. You can also remove the volumes by running `docker-compose down -v`. This will stop and remove the containers and the volumes.
 
-Did you notice that we didn't define networks explicitly in the docker-compose file? That's because docker-compose automatically creates a network for you when you run `docker-compose up`. To access the URL of the container from another container you can simply use the name of the container as the host name. Docker will handle all the DNS configurations for you behind the scenes. You will also notice that we have to use `http://localhost:3001` from the React app instead of `http://demo-backend:3001`. This is because the React app is running on your local machine and is calling the code from the browser instead from withing a container. If you want to access the node app from the React app, you have to use `http://localhost:3001` instead of `http://demo-backend:3001`.
+Did you notice that we didn't define networks explicitly in the docker-compose file? That's because docker-compose automatically creates a network for you when you run `docker-compose up`. 
 
-If you want to rebuild the images and run the containers, you can run `docker-compose up --build`. This will rebuild the images and run the containers. You can also rebuild an image for a single service by running `docker-compose up --build <service-name>`. You can also run individual services by running `docker-compose up <service-name>`. This will run only the service that you specify. You can also run multiple services by running `docker-compose up <service-name> <service-name>`. This will run the services that you specify. The same way, you can also stop individual services by running `docker-compose stop <service-name>`. This will stop the service that you specify. You can also stop multiple services by running `docker-compose stop <service-name> <service-name`.
+If you want to rebuild the images and run the containers, you can run `docker-compose up --build`. This will rebuild the images and run the containers should you happen to change the contents of the image to be built. You can also rebuild an image for a single service by running `docker-compose up --build <service-name>`. You can also run individual services by running `docker-compose up <service-name>`. This will run only the service that you specify. You can also run multiple services by running `docker-compose up <service-name> <service-name>`. This will run the services that you specify. The same way, you can also stop individual services by running `docker-compose stop <service-name>`. This will stop the service that you specify. You can also stop multiple services by running `docker-compose stop <service-name> <service-name`.
 
 You can see how versatile docker-compose can be. The neatest thing is you never have to ask your co-worker what version of node or react or any other dependency they are using. You can just share the docker-compose file and run the same environment as everyone else. 
 
@@ -332,7 +341,7 @@ You will also continue to notice that we never installed any dependencies on our
 
 Multistep builds are a great way to optimize your Docker images. They allow you to build your application in one image and then copy the built application to another image. This way you can keep your images small and only include the dependencies that you need. This is especially useful when you have a build step and a run step. You can build your application in one image and then run your application in another image. This way you don't have to include the build dependencies in the run image. This is a great way to optimize your Docker images and keep them small.
 
-Let's take our React app for example. Let's say we want to build our React app and then use Nginx to run it. We can use a multistep build to build our React app in one image and then copy the built React app to another image. This way we can keep our Nginx image small and only include the built React app. This is a great way to optimize your Docker images and keep them small.
+Let's take our React app for example. Let's say we want to build our React app and then use Nginx to run it. We can use a multistep build to build our React app in one image and then copy the built React app to another image. This way we can keep our Nginx image small and only include the built React app. 
 
 Let's create a new `Dockerfile` in the `docker-frontend` directory and call it Build.Dockerfile with the following configuration:
 
@@ -379,6 +388,8 @@ Now let's add a new service to the `docker-compose.yml` file to run the React ap
     depends_on:
       - demo-backend
 ```
+
+We can call just this service by running `docker-compose up demo-frontend-build`. This will build the React app and run it with Nginx. You can access the React app at [localhost:8080](http://localhost:8080). Since we set `demo-backend` as a dependency, and `demo-backend` has a dependency for the mongo service, all three services will come up when you run `docker-compose up demo-frontend-build`.
 
 
 
@@ -430,6 +441,14 @@ WORKDIR /app
 
 ENTRYPOINT [ "npm" ]
 ```
+
+Now you can run the container and pass the command as an argument:
+
+```powershell
+docker run --rm -it -v /c/repos/docker-demo/docker-node:/app -w /app node:latest init -y
+```
+
+You will notice how we didn't have to type `npm` before `init -y`. This is because the `entrypoint` option in the Dockerfile specifies `npm` as the entrypoint command. This way you can use the same image to run different containers with different commands such as `npm install`, `npm start`, `npm test`, etc. All while omitting the `npm` command in the `docker run` command.
 
 To achieve the same thing in docker-compose to make it more versatile, we can also pass the entrypoint and command as arguments in the `docker-compose.yml` file:
 
