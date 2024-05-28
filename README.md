@@ -1,24 +1,24 @@
 # Docker
 
-Let’s start with what Docker is and why it is a great tool for engineers. Docker is a containerization platform that allows you to package, ship and run specific applications in isolated environments. It does that using containers and images.
+## Intro
+
+Docker is a containerization platform that allows you to package, ship and run specific applications in isolated environments. It does that using containers and images.
 
 I went to school for cooking so this example makes sense to me:
 
-Imagine you're a chef, and you need to cook different dishes for your customers. You want each dish to be prepared in its own special way, with its own ingredients and cooking techniques. Then imagine that you want to build a franchise or open up pop-up locations with these same dishes and maintain quality control to ensure it always tastes the same no matter where you open your locations up.
+Imagine you're a chef, and you need to cook different dishes for your customers. You want each dish to be prepared in its own special way, with its own ingredients and cooking techniques and equipment. Then imagine that you want to build a franchise or open up pop-up locations with these same dishes and maintain quality control to ensure it always tastes the same no matter where you open your locations up.
 
 Docker helps with this. Instead of using physical pots and pans or a physical kitchen, you use virtual "containers" that can hold all the ingredients, recipes and cooking equipment needed for each dish. Docker containers are like self-contained kitchens that can be easily set up, used, and taken down as needed. Just like pop-up restaurants or franchises, you take the recipes, ingredients and equipment (or images) for your items and use them for each location (aka spin up new containers based on these images or recipes). It ensures that you have the same reproducible code and environments each time you spin up a container with those images.
 
 So what are containers and images.
 
-# Intro
-
 ## Images
 
-Images are like pre-built templates of your kitchen. It contains everything you need in order to cook a specific dish.
+Images are like pre-built templates of your kitchen. It contains everything you need in order to cook a specific dish all bundled up in one template. You can't run docker containers without images. You can think of images as the recipes and equipment needed to cook a dish. You can create your own images or use pre-built images from Docker Hub or private repos.
 
 ## Containers
 
-When you want to cook a new dish, you create a whole new kitchen specifically just for that dish. Not really what you would do in real life, but in the world of Docker and containerization, we always want a container to do one specific task. So in this case, a container is an environment that runs an image. You can create as many containers as you want based on an image. Just like a franchise - you have your recipes and equipment as an image. Now you can open as many locations based on that image of recipes and equipment.
+When you want to cook a new dish, you create a whole new kitchen specifically just for that dish. Not really what you would do in real life, but in the world of Docker and containerization, we always want a container to do one specific task. So in this case, a container is an environment that runs an image. You can create as many containers as you want based on an image. Just like a franchise - you have your recipes and equipment as an image. Now you can open as many locations based on that image of recipes and equipment. To be more efficient in our kitchens we will talk about multi-container setups later on so that you can have one kitchen create more than just one dish.
 
 # Benefits
 
@@ -30,13 +30,19 @@ These are the benefits of using Docker:
 
 # Demo
 
+All this technical talk is great, but let's see how this works in practice. Let's start by installing Docker on your local machine. You can download Docker Desktop from [here](https://www.docker.com/products/docker-desktop). Docker Desktop is available for Windows and macOS. If you are using Linux, you can install Docker Engine. You can find the installation instructions for Docker Engine [here](https://docs.docker.com/engine/install/).
+
+I have Docker Desktop installed on my system, and I will show you that later, but while we are going through the demo, I will use the command line to interact with Docker. You can use the Docker Desktop GUI if you prefer. The commands are the same, but the GUI makes it easier to see what's going on.
+
 There are various ways to create images and run containers. You can either use pre-built images from docker hub or private repos, or you can create your own images.
 
 Let’s look at all these options starting from terminal commands to then using Dockerfile to build images and then finally using docker-compose for multi-container setups.
 
 ## Docker Run
 
-The simplest way of starting a docker container is by using a pre-built image. We will use Node as an example in the demos today, but there are pre-built images for various environments - depending on your needs.
+The simplest way of starting a docker container is by using a pre-built image. We will use Node as an example in the demos today, but there are many other pre-built images for various environments - depending on your needs - all available on Docker Hub.
+
+By the end of today, we will have an extremely simple MERN stack application set up with a React frontend, a Node backend, and a MongoDB database. We will use Docker to containerize each of these services and run them in isolated environments.
 
 To run a docker container, you simply write the following:
 
@@ -44,7 +50,7 @@ To run a docker container, you simply write the following:
 docker run --rm -it --name demo-node node:latest
 ```
 
-Ignoring some flags, lets talk about this command:
+Let's talk about this command:
 
 - `docker run` indicates that we want to run a container
 - `--rm` tells docker that we want to remove the container once it stops running. This is useful for when you want to run a container once and then remove it after it stops running. More on this later when we talk about utility containers
@@ -54,21 +60,21 @@ Ignoring some flags, lets talk about this command:
 
 What this command will do is create and run a container called `demo-node` based off of the official Node image from docker hub and then by default run it in `attached` mode and also tell it that we want to interact with it through a terminal.
 
-Now we can run commands in the terminal using the node interpreter as you would as if you were running a node shell on your local environment.
+Now we can run commands in the terminal using the node interpreter just as you would if you were running a node shell on your local environment.
 
 So what is so special about this? It may not be as exciting through this one example, but what if you didn't have node installed on your system. Let’s take it a step further, what if you are working on a project that requires a specific version of node while the rest of your other projects run on other versions of node. If you don’t have `nvm` installed on your machine locally, you have to constantly install/uninstall versions of node just to run one project.
 
-Hopefully now you can see how this is useful. Docker allows you to run these containers in isolation - disregarding other containers - in their own environments without having to have those environments installed or set up on your local machine. We will see some other great examples as we go on to see other complex setups.
+Hopefully now you can begin to see how this is useful initially. Docker allows you to run these containers in isolation - disregarding other containers - in their own environments without having to have those environments or runtimes installed or set up on your local machine. We will see some other examples as we go on to see more complex setups.
 
 Let's stop the container by typing `exit` in the terminal. This will stop the container and remove it because we used the `--rm` flag. If you didn't use the `--rm` flag, or if you started the container in `detached` mode, you can stop the container by running `docker stop <container-name>`. More on that later.
 
 ## Docker Build
 
-Great! We can run images like Node or Nginx but is that all we can do? This is just scratching the surface. Let’s talk about more real-life examples starting with building our own images.
+Great! We can run images like Node or Nginx, but is that all we can do? This is just scratching the surface. Let’s talk about more real-life examples starting with building our own images.
 
 Let’s say you have a node application with some endpoints that you are working on. This is a great little example to demonstrate how you can containerize your app from your own image of your application.
 
-Here is a quick little node application that returns a `{message: 'Hello World!'}` response when you call the `[app]/` endpoint. Nothing crazy, but let’s say you don’t have node installed on your system, and you don’t really want to install it on your system for this small application, and you don't really want to install the local dependencies in the `node_modules` folder.
+Here is a quick little node application that returns a `{message: 'Hello World!'}` response when you call the root `/` endpoint. Nothing crazy, but let’s say you don’t have node installed on your system, and you don’t really want to install it on your system for this small application, and you don't really want to install the local dependencies in the `node_modules` folder either. You just want to quickly spin this app up so that you can test the API locally.
 
 You do notice that the project has a `Dockerfile` which is great for you because you are an awesome engineer and have Docker installed on your local machine.
 
@@ -88,10 +94,10 @@ COPY . .
 CMD [ "npm", "start" ]
 ```
 
-- `FROM` tells Docker that we want to build our image on top of the latest node environment image that is available on Docker Hub. There are other environments that you can build on including Nginx, Mongo and many others. But because we are building a Node app, it makes sense for us to the Node image.
-- `WORKDIR` tells Docker that when you create this image, set the working directory to the `/app` path inside the image
-- `COPY package.json .` tells Docker that you want to copy `package.json` to `.` inside the image. `.` Represents the working directory of our image which we have set to `/app` above
-- `RUN` tells Docker that when you start to create the image, run the `npm install` command
+- `FROM` tells Docker that we want to build our image on top of the latest node environment image that is available on Docker Hub. There are other environments that you can build on including Nginx, Mongo and many others. But because we are building a Node app, it makes sense for us to use the Node image.
+- `WORKDIR` tells Docker that when you create this image, set the working directory to the `/app` path inside the image. This is the context of the image that we will be working in
+- `COPY package.json .` tells Docker that you want to copy `package.json` to `.` inside the image. `.` Represents the working directory of our image which we have set to as `/app` above
+- `RUN` tells Docker that when you start to build the image, run the `npm install` command
 - `COPY . .` tells Docker to copy everything from the context of your local machine to the context of the working directory in the image
 - `CMD ["npm", "start"]` tells node that when the image is run by the container, run this command. It’s important to note that this doesn't happen during build time - therefore there’s a differentiation between running `RUN npm install` and `CMD ["npm", "start"]`
 
@@ -110,33 +116,27 @@ Let’s break this down:
 Great! We built the image, but it didn't do anything. I can’t access [localhost:3000](http://localhost:3000) to access my app’s API. That’s because building an image is just one part of the equation. You always need a container to run an image. To run this image we can use a similar command as the one we saw before to run the official node image in a container, except we will use our own image this time.
 
 Simply run:
-    
-    ```powershell
-    docker run --rm -it -p 3000:3000 --name demo-node-app demo-node:latest
-    ```
 
-- `docker run` tells docker that we want to run a container
-- `--rm` tells docker that we want to remove the container once it stops running
-- `-it` tells docker that we want to enable interactive mode (Keep STDIN open) and allocate a pseudo-TTY
+```powershell
+docker run --rm -it -p 3000:3000 --name demo-node-app demo-node:latest
+```
+Everything is the same as before except for this time we are exposing a port. Let’s break this down:
+
 - `-p 3000:3000` tells docker that we want to map port 3000 on our local machine to port 3000 on the container. This is important because the node app is running on port 3000 inside the container. If we don’t map the ports, we won’t be able to access the app from our local machine
-- `--name` tells docker that we want to give this container a name
-- `demo-node:latest` tells docker that we want to run this container based on the `demo-node` image that we built earlier
 
 Now you can access your app at [localhost:3000](http://localhost:3000) and see the `{message: 'Hello World!'}` response if you use the browser or tools like Postman or other HTTP calling methods.
 
 This is a great example of how you can containerize your applications and run them in isolated environments without having to install the dependencies on your local machine. This is especially useful when you have multiple projects that require different versions of dependencies or when you want to share your project with others without having to worry about them setting up their environments.
 
-You will notice that the terminal is still running the container, and you can't make any other input commands. This is because by default Docker runs containers in the foreground in `attached` mode. If you want to run the container in the background (`detached` mode), you can add the `-d` flag to the `docker run` command. This will run the container in detached mode. You can still access the logs of the container by running `docker logs <container-name>`. You can also attach to the container by running `docker attach <container-name>`.
+You will notice that the terminal is still running the container, and you can't make any other input commands. This is because by default Docker runs containers in the foreground in `attached` mode. If you want to run the container in the background (`detached` mode), you can add the `-d` flag to the `docker run` command. This will run the container in detached mode and free up your terminal to continue using it without locking it up like it does in attached mode. You can still access the logs of the container by running `docker logs <container-name>`. You can also attach to the container by running `docker attach <container-name>`.
 
-To get the container name, you can run `docker ps` to see all the running containers. You can also see all the containers that have run in the past by running `docker ps -a`.
+To get the container name, you can run `docker ps` to see all the running containers. You can also see all the containers that have run in the past but have not yet been removed by running `docker ps -a`.
 
 To stop the container, you can run `docker stop <container-name>`. If you want to remove the container, you can run `docker rm <container-name>`. If you want to remove the image, you can run `docker rmi <image-name>`.
 
 Let's open another terminal and run `docker ps` to see the running containers. You will see that the container is running. Now let’s stop the container by running `docker stop demo-node-app`. You can also stop a container by using the `CONTAINER ID` instead of the name. You don't have to type out the whole ID; you can just type the first few characters of the ID and docker will stop the container for you. If you run `docker ps` again, you will see that the container is no longer running. If you run `docker ps -a`, you will see that the container is still there, but it’s in an exited state. If you want to remove the container, you can run `docker rm demo-node-app`. If you run `docker ps -a` again, you will see that the container is no longer there.
 
-To see a list of all the images that you have built, you can run `docker images`. You will see a list of all the images that you have built. If you want to remove the image you just built, you can run `docker rmi demo-node:latest`. If you run `docker images`, you will see that the image is no longer there. You can also remove multiple images by adding multiple image names to the `docker rmi` command. 
-
-If you want to remove all the images that you have built, you can run `docker rmi $(docker images -q)`. This will remove all the images that you have built. If you want to remove all the containers that you have run, you can run `docker rm $(docker ps -a -q)`. You can also run `docker system prune` to remove all the stopped containers, all the dangling images, and all the unused networks. Be careful with this command because it will remove all the stopped containers, all the dangling images, and all the unused networks. To only prune images, you can run `docker image prune`. To only prune containers, you can run `docker container prune`. To only prune networks, you can run `docker network prune`. Pruning is a great way to clean up your system and remove all the unused containers, images, and networks.
+To see a list of all the images that you have built, you can run `docker images`. If you want to remove the image you just built, you can run `docker rmi demo-node:latest`. If you run `docker images`, you will see that the image is no longer there. You can also remove multiple images by adding multiple image names to the `docker rmi` command.
 
 ## Docker Network
 
@@ -308,6 +308,7 @@ volumes:
 - `container_name` is the name of the container that you want to run.
 - `ports` is the ports that you want to map. This is important because the node app is running on port 3000 inside the container, and the React app is running on port 3000 inside the container. If we don’t map the ports, we won’t be able to access the apps from our local machine.
 - `environment` is the environment variables that you want to set. This is useful when you want to set environment variables for your services. We can also optionally use a `.env` file to set environment variables and use them in the `docker-compose.yml` file using the `- env_file: .env` option instead of the `environment` option.
+- `depends_on` is the services that you want to depend on. This is useful when you have multiple services that need to communicate with each other. You can define the order in which the services start up by using the `depends_on` option. You can also use the `restart` option to define the restart policy for your services. This is useful when you want to automatically restart your services when they stop running. The neat thing about `depends_on` is that the services that your service depends on will automatically start when you try starting just the one service.
 
 Now that we have a docker-compose file and the modules in their own directories with their own Dockerfiles, we can run the following command to build and run the containers:
 
@@ -315,7 +316,7 @@ Now that we have a docker-compose file and the modules in their own directories 
 docker-compose up
 ```
 
-That is it! This will build and run all the containers in the `docker-compose.yml` file using a single command instead of running `docker build` and `docker run` multiple times for each image. You will see that the containers are running, and you can access the node app at [localhost:3001](http://localhost:3001) and the React app at [localhost:3000](http://localhost:3000). You can also access the MongoDB database's interactive terminal by running `docker exec -it demo-mongo mongo`. You can also run `docker-compose` in detached mode by running `docker-compose up -d`. This will run the containers in the background. 
+That is it! This will build and run all the containers in the `docker-compose.yml` file using a single command instead of running `docker build` and `docker run` multiple times for each image. You will see that the containers are running, and you can access the node app at [localhost:3001](http://localhost:3001) and the React app at [localhost:3000](http://localhost:3000). You can also access the frontend container's terminal by running `docker exec -it demo-frontend /bin/bash`. You can also run `docker-compose` in detached mode by running `docker-compose up -d`. This will run the containers in the background and not lock up your terminal.
 
 To stop the containers, all you have to do is run `docker-compose down` and it will stop all the running containers for this docker-compose file. This will stop and remove the containers. You can also remove the volumes by running `docker-compose down -v`. This will stop and remove the containers and the volumes.
 
@@ -326,6 +327,60 @@ If you want to rebuild the images and run the containers, you can run `docker-co
 You can see how versatile docker-compose can be. The neatest thing is you never have to ask your co-worker what version of node or react or any other dependency they are using. You can just share the docker-compose file and run the same environment as everyone else. 
 
 You will also continue to notice that we never installed any dependencies on our local machine. Another benefit of containerizing your applications is that you don't have to install dependencies on your local machine.
+
+## Multistep Builds
+
+Multistep builds are a great way to optimize your Docker images. They allow you to build your application in one image and then copy the built application to another image. This way you can keep your images small and only include the dependencies that you need. This is especially useful when you have a build step and a run step. You can build your application in one image and then run your application in another image. This way you don't have to include the build dependencies in the run image. This is a great way to optimize your Docker images and keep them small.
+
+Let's take our React app for example. Let's say we want to build our React app and then use Nginx to run it. We can use a multistep build to build our React app in one image and then copy the built React app to another image. This way we can keep our Nginx image small and only include the built React app. This is a great way to optimize your Docker images and keep them small.
+
+Let's create a new `Dockerfile` in the `docker-frontend` directory and call it Build.Dockerfile with the following configuration:
+
+```docker
+# Build the React app
+FROM node:latest as build
+
+WORKDIR /app
+
+COPY package.json .
+
+RUN npm install
+
+COPY . .
+
+RUN npm run build
+
+# Run the React app
+FROM nginx:latest
+
+COPY --from=build /app/build /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]    
+```
+
+- `FROM node:latest as build` tells Docker that we want to build our application in one image and then copy the built application to another image. The `as build` tag allows us to name the image that we want to build. This is useful when we want to reference the image later on in the Dockerfile.
+- `COPY --from=build /app/build /usr/share/nginx/html` tells Docker that we want to copy the built application from the `build` image to the `/usr/share/nginx/html` path inside the `nginx` image. This way we can keep our `nginx` image small and only include the built application.
+- `EXPOSE 80` tells Docker that we want to expose port 80 on the container. This is important because `nginx` is running on port 80 inside the container. If we don’t expose the port, we won’t be able to access the React app from our local machine.
+- `CMD ["nginx", "-g", "daemon off;"]` tells Docker that we want to run the `nginx` command with the `-g "daemon off;"` flag. This is important because `nginx` runs in the background by default. If we don’t run `nginx` in the foreground, the container will stop running after it starts.
+
+Now let's add a new service to the `docker-compose.yml` file to run the React app with Nginx:
+
+```yaml
+  demo-frontend-build:
+    build:
+      context: ./docker-frontend
+      dockerfile: Build.Dockerfile
+    image: demo-react-nginx
+    container_name: demo-frontend-build
+    ports:
+      - 8080:80
+    depends_on:
+      - demo-backend
+```
+
+
 
 ## Utility Containers
 

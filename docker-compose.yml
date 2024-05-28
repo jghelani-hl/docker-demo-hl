@@ -37,5 +37,16 @@ services:
     environment:
       - WATCHPACK_POLLING=true
 
+#  demo-frontend-build:
+#    build:
+#      context: ./docker-frontend
+#      dockerfile: Build.Dockerfile
+#    image: demo-react-nginx
+#    container_name: demo-frontend-build
+#    ports:
+#      - 8080:80
+#    depends_on:
+#      - demo-backend
+
 volumes:
   demo-mongo-data:

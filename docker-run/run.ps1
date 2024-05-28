@@ -1,1 +1,0 @@
-docker run --rm -it --name demo-node node:latest
