@@ -66,7 +66,7 @@ So what is so special about this? It may not be as exciting through this one exa
 
 Hopefully now you can begin to see how this is useful initially. Docker allows you to run these containers in isolation - disregarding other containers - in their own environments without having to have those environments or runtimes installed or set up on your local machine. We will see some other examples as we go on to see more complex setups.
 
-Let's stop the container by typing `exit` in the terminal. This will stop the container and remove it because we used the `--rm` flag. If you didn't use the `--rm` flag, or if you started the container in `detached` mode, you can stop the container by running `docker stop <container-name>`. More on that later.
+Let's stop the container by typing `ctrl + c` in the terminal. This will stop the container and remove it because we used the `--rm` flag. If you didn't use the `--rm` flag, or if you started the container in `detached` mode, you can stop the container by running `docker stop <container-name>`. More on that later.
 
 ## Docker Build
 
@@ -139,13 +139,11 @@ To stop the container, you can run `docker stop <container-name>`. If you want t
 
 Let's open another terminal and run `docker ps` to see the running containers. You will see that the container is running. Now let’s stop the container by running `docker stop demo-node-app`. You can also stop a container by using the `CONTAINER ID` instead of the name. You don't have to type out the whole ID; you can just type the first few characters of the ID and docker will stop the container for you. If you run `docker ps` again, you will see that the container is no longer running. If you run `docker ps -a`, you will see that the container is still there, but it’s in an exited state. If you want to remove the container, you can run `docker rm demo-node-app`. If you run `docker ps -a` again, you will see that the container is no longer there.
 
-To see a list of all the images that you have built, you can run `docker images`. If you want to remove the image you just built, you can run `docker rmi demo-node:latest`. If you run `docker images`, you will see that the image is no longer there. You can also remove multiple images by adding multiple image names to the `docker rmi` command.
+To see a list of all the images that you have built, you can run `docker images`. If you want to remove the image you just built, you can run `docker rmi demo-node:latest`. You can also remove multiple images by adding multiple image names to the `docker rmi` command. If you run `docker images`, you will see that the image is no longer there.
 
 ## Environment Variables for Docker Build and Run
 
 Great! We have seen how to build images and run containers. But what if you want to set environment variables for your images and containers? This is where environment variables come in. Environment variables allow you to set environment variables for your images and containers. This is useful when you want to set environment variables for things such as dev versus prod endpoints, or application credentials for different environments. You can set environment variables for your images and containers using the `ENV` instruction in the `Dockerfile` like you saw before or the `-e` flag in the `docker run` command.
-
-Let’s say you have a node application that connects to a MongoDB database. You want to run the node app in a container and set the MongoDB connection string as an environment variable. You can set the environment variable in the `Dockerfile` using the `ENV` instruction or in the `docker run` command using the `-e` flag.
 
 ## Docker Network
 
@@ -153,7 +151,7 @@ Great! We have seen how to build images and run containers. But what if you want
 
 Docker networks allow you to create a network that your containers can connect to. This is useful when you have multiple containers that need to communicate with each other. You can create a network and attach your containers to that network. This way your containers can communicate with each other without having to expose ports to the outside world.
 
-Let’s say you have a node application that connects to a MongoDB database. You want to run both the node app and the MongoDB database in their own containers isolated in their own environments. You can create a network and attach both the node app and the MongoDB database to that network. This way the node app can connect to the MongoDB database without having to expose the MongoDB port to the outside world.
+Let’s say you have a node application that connects to a MongoDB database. You want to run both the node app and the MongoDB database in their own containers isolated in their own environments, but you still want to be able to access their API from your container. You can create a network and attach both the node app and the MongoDB database to that network. This way the node app can connect to the MongoDB database without having to expose the MongoDB port to the outside world.
 
 To create a network, you can run:
 
@@ -161,9 +159,9 @@ To create a network, you can run:
 docker network create demo-network
 ```
 
-This will create a network called `demo-network`. You can see all the networks that you have created by running `docker network ls`. You can also see all the containers that are connected to your network by running `docker network inspect <network-name>`.
+This will create a network called `demo-network`. You can see all the networks that you have created by running `docker network ls`. 
 
-Now let’s run a MongoDB container and attach it to the `demo-network` network:
+Now let’s run a MongoDB container in detached mode this time and attach it to the `demo-network` network:
 
 ```powershell
 docker run --rm -d --network demo-network --name demo-mongo mongo:latest
@@ -173,7 +171,7 @@ docker run --rm -d --network demo-network --name demo-mongo mongo:latest
 
 If you run `docker ps`, you will see that the MongoDB container is running. If you run `docker network inspect demo-network`, you will see that the MongoDB container is attached to the `demo-network` network.
 
-Now let’s run a node app container and attach it to the `demo-network` network:
+Now let’s run a node app container in attached mode and attach it to the `demo-network` network:
 
 ```powershell
 docker run --rm -it -p 3000:3000 --network demo-network --name demo-node-app demo-node:latest
@@ -189,7 +187,7 @@ When we talk about Docker Compose, we will see how we can define networks and at
 
 ## Volumes and Mounts
 
-Until now, we have seen how to build images, run containers, use environment variables, and create networks. The one thing I didn't mention before is that containers are intrinsically stateless. But what if you want to persist data between container restarts? For example, what if you want to save data to the MongoDB database, but everytime you restart the container that data is lost right now. What if we want to persist that data. This is where Docker volumes and mounts come in. By default, docker containers are stateless. This means that when a container stops running, all the data inside the container is lost. If you want to persist data between container restarts, you can use Docker volumes and mounts. it is important to note that you are not modifying the image itself, but you are modifying the container that is running the image.
+Until now, we have seen how to build images, run containers, use environment variables, and create networks. The one thing I didn't mention before is that containers are intrinsically stateless. But what if you want to persist data between container restarts? For example, what if you want to save data to the MongoDB database, but every time you restart the container that data is lost right now. What if we want to persist that data. This is where Docker volumes and mounts come in. By default, docker containers are stateless. This means that when a container stops running, all the data inside the container is lost. If you want to persist data between container restarts, you can use Docker volumes and mounts. it is important to note that you are not modifying the image itself, but you are modifying the container that is running the image.
 
 Let's test this out. Let's try a POST request to the `/name` endpoint for the node and mongo containers that are already running. It does come back with a success message. If we try the GET request to `/names` you will see the name we just entered coming back from MongoDB.
 
@@ -242,10 +240,10 @@ Let's test this out with the node app. Let's stop the node app container by runn
 Now let's run the node app container again and attach a bind mount to it:
 
 ```powershell
-docker run --rm -it -p 3000:3000 --network demo-network -v /c/repos/docker-demo/docker-app:/app -v /app/node_modules --name demo-node-app -e CHOKIDAR_USEPOLLING=true demo-node:latest
+docker run --rm -it -p 3000:3000 --network demo-network -v /c/repos/docker-demo/docker-backend:/app -v /app/node_modules --name demo-node-app -e CHOKIDAR_USEPOLLING=true demo-node:latest
 ```
 
-- `-v /c/repos/docker-demo/docker-app:/app` tells docker that we want to attach the `/c/repos/docker-demo/docker-app` path on our local machine to the `/app` path inside the container. One thing to note here is that the path of your local machine has to be an absolute path. Because I am using WSL2, I have to use the `/c/` prefix to specify the correct path. If you are using macOS or Linux, you can use the `/` prefix to specify the path. If you are using Windows, you can use the `C:\` prefix to specify the path.
+- `-v /c/repos/docker-demo/docker-backend:/app` tells docker that we want to attach the `/c/repos/docker-demo/docker-app` path on our local machine to the `/app` path inside the container. One thing to note here is that the path of your local machine has to be an absolute path. Because I am using WSL2, I have to use the `/c/` prefix to specify the correct path. If you are using macOS or Linux, you can use the `/` prefix to specify the path. If you are using Windows, you can use the `C:\` prefix to specify the path.
 - `-v /app/node_modules` tells docker that we want to attach the `/app/node_modules` path inside the container. This is important as our Dockerfile copies everything from our local to the container, and since our local doesn't have a node_modules folder, it will replace the node_modules folder in the container that the image has when it was built. So to avoid this from happening we are telling docker to persist the node_modules folder from the container to the local machine. This way we don't have to install the node_modules on our local machine every time we run the container. The deeper the path, the higher the priority for that data persistence.
 - `-e CHOKIDAR_USEPOLLING=true` tells docker that we want to set the `CHOKIDAR_USEPOLLING` environment variable to `true`. This is useful when you are using bind mounts on Windows or macOS. This is because the file system on Windows and macOS doesn't support file system events like Linux does. This can cause issues with file system events not being detected by the container. Setting the `CHOKIDAR_USEPOLLING` environment variable to `true` tells the container to use polling to detect file system events.
 
