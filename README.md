@@ -343,7 +343,7 @@ Multistep builds are a great way to optimize your Docker images. They allow you 
 
 Let's take our React app for example. Let's say we want to build our React app and then use Nginx to run it. We can use a multistep build to build our React app in one image and then copy the built React app to another image. This way we can keep our Nginx image small and only include the built React app. 
 
-Let's create a new `Dockerfile` in the `docker-frontend` directory and call it Build.Dockerfile with the following configuration:
+Let's create a new `Dockerfile` in the `docker-frontend` directory and call it Build. Dockerfile with the following configuration:
 
 ```docker
 # Build the React app
@@ -467,4 +467,4 @@ By default, it will run `npm init -y`. However, if you run `docker-compose run` 
 
 ## Conclusion
 
-This is just scratching the surface of what you can do with Docker. There are still other topics to learn about like publishing and deploying docker images that depend on your use cases. However, hopefully this introduction to Docker has helped to see why Docker is great tool for modern developers.
+This is just scratching the surface of what you can do with Docker. There are still other topics to learn about like kubernetes, publishing and deploying docker images that depend on your use cases. However, hopefully this introduction to Docker has helped to see why Docker is great tool for modern developers.
