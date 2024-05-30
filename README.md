@@ -467,4 +467,4 @@ By default, it will run `npm init -y`. However, if you run `docker-compose run` 
 
 ## Conclusion
 
-This is just scratching the surface of what you can do with Docker. There are so many other options and flags to suit your need. Docker is a great tool for running applications in isolated environments without having to install the dependencies on your local machine. It's also a great way to share your applications with others without having to worry about them setting up their environments.
+This is just scratching the surface of what you can do with Docker. There are still other topics to learn about like publishing and deploying docker images that depend on your use cases. However, hopefully this introduction to Docker has helped to see why Docker is great tool for modern developers.
